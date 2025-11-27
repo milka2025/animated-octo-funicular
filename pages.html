@@ -19,9 +19,12 @@
         }
 
         .header-image {
-            width: 100%;
-            max-height: 300px;
-            object-fit: cover;
+            width: auto;
+            max-width: 200px; /* Маленький размер */
+            height: auto;
+            object-fit: contain; /* Полноценный, без обрезки */
+            margin-top: 20px; /* Чтобы стоял на сайте */
+            background: transparent; /* Без фона, предполагая PNG с прозрачностью */
         }
 
         .features {
@@ -63,7 +66,7 @@
     </style>
 </head>
 <body>
-    <img src="картинка.jpg" alt="Картинка игры" class="header-image">
+    <img src="картинка.png" alt="Персонаж игры" class="header-image"> <!-- Изменено на PNG для прозрачности -->
 
     <div class="features">
         <p>Отдохни со змейкой</p>
