@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Змейка в стиле Альфа-Банка</title>
+    <style>
+        body {
+            background-color: #ffffff;
+            font-family: sans-serif;
+            color: #ef3124;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+        h1 {
+            font-size: 24px;
+            margin-bottom: 10px;
+            color: #ef3124;
+        }
+        canvas {
+            border: 2px solid #ef3124;
+            background-color: #f8f8f8;
+        }
+        #score {
+            font-size: 18px;
+            margin-top: 10px;
+            color: #ef3124;
+        }
+        #joystick {
+            width: 100px;
+            height: 100px;
+            background: rgba(239, 49, 36, 0.1); /* Светлый красный Альфа-Банка */
+            border: 2px solid #ef3124;
+            border-radius: 50%;
+            position: relative;
+            margin-top: 20px;
+            touch-action: none;
+        }
+        #stick {
+            width: 40px;
+            height: 40px;
+            background: #ef3124;
+            border-radius: 50%;
+            position: absolute;
+            top: 30px;
+            left: 30px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Змейка Альфа-Банка</h1>
+    <canvas id="game" width="300" height="300"></canvas>
+    <div id="score">Счет: 0</div>
+    <div id="joystick">
+        <div id="stick"></div>
+    </div>
+    <script>
+        const canvas = document.getElementById('game');
+        const ctx = canvas.getContext('2d');
+        const grid = 20; // Размер клетки
+        let snake = [{x: 5, y: 5}];
+        let direction = 'right';
+        let food = {x: Math.floor(Math.random() * (canvas.width / grid)), y: Math.floor(Math.random() * (canvas.height / grid))};
+        let score = 0;
+
+        const joystick = document.getElementById('joystick');
+        const stick = document.getElementById('stick');
+        let joystickCenterX, joystickCenterY;
+        let isTouching = false;
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Рисуем змейку
+            ctx.fillStyle = '#ef3124'; // Красный цвет Альфа-Банка
+            snake.forEach(part => {
+                ctx.fillRect(part.x * grid, part.y * grid, grid - 2, grid - 2);
+            });
+            
+            // Рисуем еду
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(food.x * grid, food.y * grid, grid - 2, grid - 2);
+        }
+
+        function update() {
+            let head = {x: snake[0].x, y: snake[0].y};
+            
+            if (direction === 'right') head.x++;
+            if (direction === 'left') head.x--;
+            if (direction === 'up') head.y--;
+            if (direction === 'down') head.y++;
+            
+            // Проверка на столкновение со стенами
+            if (head.x < 0 || head.x >= canvas.width / grid || head.y < 0 || head.y >= canvas.height / grid) {
+                resetGame();
+                return;
+            }
+            
+            // Проверка на столкновение с собой
+            for (let i = 1; i < snake.length; i++) {
+                if (head.x === snake[i].x && head.y === snake[i].y) {
+                    resetGame();
+                    return;
+                }
+            }
+            
+            snake.unshift(head);
+            
+            // Если съели еду
+            if (head.x === food.x && head.y === food.y) {
+                score++;
+                document.getElementById('score').innerText = 'Счет: ' + score;
+                food = {x: Math.floor(Math.random() * (canvas.width / grid)), y: Math.floor(Math.random() * (canvas.height / grid))};
+            } else {
+                snake.pop();
+            }
+            
+            draw();
+        }
+
+        function resetGame() {
+            snake = [{x: 5, y: 5}];
+            direction = 'right';
+            food = {x: Math.floor(Math.random() * (canvas.width / grid)), y: Math.floor(Math.random() * (canvas.height / grid))};
+            document.getElementById('score').innerText = 'Счет: 0';
+            alert('Игра окончена! Счет: ' + score);
+            score = 0;
+        }
+
+        // Управление клавиатурой (для тестирования на десктопе)
+        document.addEventListener('keydown', e => {
+            if (e.key === 'ArrowRight' && direction !== 'left') direction = 'right';
+            if (e.key === 'ArrowLeft' && direction !== 'right') direction = 'left';
+            if (e.key === 'ArrowUp' && direction !== 'down') direction = 'up';
+            if (e.key === 'ArrowDown' && direction !== 'up') direction = 'down';
+        });
+
+        // Управление джойстиком
+        joystick.addEventListener('touchstart', e => {
+            e.preventDefault();
+            isTouching = true;
+            const rect = joystick.getBoundingClientRect();
+            joystickCenterX = rect.left + rect.width / 2;
+            joystickCenterY = rect.top + rect.height / 2;
+            moveStick(e.touches[0]);
+        });
+
+        joystick.addEventListener('touchmove', e => {
+            e.preventDefault();
+            if (isTouching) {
+                moveStick(e.touches[0]);
+            }
+        });
+
+        joystick.addEventListener('touchend', e => {
+            e.preventDefault();
+            isTouching = false;
+            // Возвращаем стик в центр
+            stick.style.left = '30px';
+            stick.style.top = '30px';
+            // Змейка продолжает двигаться в последнем направлении
+        });
+
+        function moveStick(touch) {
+            let deltaX = touch.clientX - joystickCenterX;
+            let deltaY = touch.clientY - joystickCenterY;
+            const radius = 50; // Радиус джойстика
+            const stickRadius = 20; // Радиус стика
+            let dist = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+
+            if (dist > radius) {
+                deltaX = (deltaX / dist) * radius;
+                deltaY = (deltaY / dist) * radius;
+                dist = radius;
+            }
+
+            // Позиционируем стик
+            stick.style.left = `${50 + deltaX - stickRadius}px`;
+            stick.style.top = `${50 + deltaY - stickRadius}px`;
+
+            // Определяем направление, если движение достаточно большое
+            if (dist > 10) {
+                if (Math.abs(deltaX) > Math.abs(deltaY)) {
+                    if (deltaX > 0 && direction !== 'left') direction = 'right';
+                    else if (deltaX < 0 && direction !== 'right') direction = 'left';
+                } else {
+                    if (deltaY > 0 && direction !== 'up') direction = 'down';
+                    else if (deltaY < 0 && direction !== 'down') direction = 'up';
+                }
+            }
+        }
+
+        setInterval(update, 200); // Скорость игры
+        draw();
+    </script>
+</body>
+</html>
